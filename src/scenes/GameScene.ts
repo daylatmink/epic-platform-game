@@ -23,8 +23,10 @@ export default class GameScene extends Phaser.Scene {
         this.load.image("flag_red_b", "assets/Sprites/Tiles/Default/flag_red_b.png");
 
         // Player (nếu chỉ 1 frame → dùng load.image)
-        this.load.image("player", "assets/Sprites/Characters/Default/character_beige_idle.png");
-
+        this.load.image("player_idle", "assets/Sprites/Characters/Default/character_beige_idle.png");
+        this.load.image("player_walk_a", "assets/Sprites/Characters/Default/character_beige_walk_a.png");
+        this.load.image("player_walk_b", "assets/Sprites/Characters/Default/character_beige_walk_b.png");
+        this.load.image("player_jump_a", "assets/Sprites/Characters/Default/character_jump.png");
 
 
     }
@@ -55,10 +57,31 @@ export default class GameScene extends Phaser.Scene {
         map.createLayer("Object", [tileset8, tileset9], 0, 0);
 
         // Player
-        this.player = this.physics.add.sprite(100, 100, "player");
+        this.player = this.physics.add.sprite(100, 100, "player_idle");
         this.player.setCollideWorldBounds(true);
         this.player.setSize(80, 90);        // rộng 20, cao 30
         this.player.setOffset(23, 28);       // dịch hitbox sang phải 6px, xuống 18px
+
+        this.anims.create({
+            key: "idle",
+            frames: [{ key: "player_idle", frame: 0 }],
+            frameRate: 10
+        });
+
+        this.anims.create({
+            key: "run",
+            frames: [
+                { key: "player_walk_a", frame: 0 },
+                { key: "player_walk_b", frame: 0 },
+            ],
+            frameRate: 5,
+            repeat: -1
+        });
+        this.anims.create({
+            key: "player_jump",
+            frames: [{ key: "player_jump", frame: 0 }],
+            frameRate: 10,
+        })
         // Colliders
         this.physics.add.collider(this.player, ground);
         this.physics.add.collider(this.player, hazard, () => {
@@ -71,9 +94,6 @@ export default class GameScene extends Phaser.Scene {
 
         // Input
         this.cursors = this.input.keyboard!.createCursorKeys();
-        console.log("Tilesets:", map.tilesets.map(ts => ts.name));
-        console.log("Layers:", map.layers.map(l => l.name));
-
     }
 
     update() {
@@ -81,15 +101,21 @@ export default class GameScene extends Phaser.Scene {
 
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-speed);
+            this.player.anims.play("run", true);
+            this.player.setFlipX(true);
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(speed);
+            this.player.anims.play("run", true);
+            this.player.setFlipX(false);
         } else {
             this.player.setVelocityX(0);
+            this.player.anims.play("idle", true);
         }
 
         const jumpForce = -420;
         if (this.cursors.up.isDown && this.player.body.blocked.down) {
             this.player.setVelocityY(jumpForce);
+            this.player.anims.play("jump", true);
         }
     }
 }
