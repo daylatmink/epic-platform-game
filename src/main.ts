@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import GameScene from "./scenes/GameScene";
-
+import EndedGameScene from "./scenes/EndGameScene";
+import GameOverScene from "./scenes/GameOverScene";
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
     width: 800,
@@ -10,7 +11,7 @@ const config: Phaser.Types.Core.GameConfig = {
                 x: 0
             }, debug: true } },
     backgroundColor: "#87CEEB",
-    scene: [GameScene]
+    scene: [GameScene, EndedGameScene, GameOverScene],
 };
 
 

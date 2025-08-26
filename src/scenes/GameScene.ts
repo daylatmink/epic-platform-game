@@ -3,7 +3,13 @@ import Phaser from "phaser";
 export default class GameScene extends Phaser.Scene {
     private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-
+    private coins!: Phaser.Physics.Arcade.Group;
+    private score: number = 0;
+    private scoreText!: Phaser.GameObjects.Text;
+    private goal!: Phaser.Physics.Arcade.StaticGroup;
+    private gameOver: boolean = false;
+    private tileHeight: number = 32;
+    private tileWidth: number = 32;
     constructor() {
         super("GameScene");
     }
@@ -26,7 +32,12 @@ export default class GameScene extends Phaser.Scene {
         this.load.image("player_idle", "assets/Sprites/Characters/Default/character_beige_idle.png");
         this.load.image("player_walk_a", "assets/Sprites/Characters/Default/character_beige_walk_a.png");
         this.load.image("player_walk_b", "assets/Sprites/Characters/Default/character_beige_walk_b.png");
-        this.load.image("player_jump_a", "assets/Sprites/Characters/Default/character_jump.png");
+        this.load.image("player_jump", "assets/Sprites/Characters/Default/character_beige_jump.png");
+        // Coin
+        this.load.spritesheet("coins", "assets/Sprites/Tiles/Default/coin_gold.png",{
+            frameWidth: 64,
+            frameHeight: 64
+        });
 
 
     }
@@ -78,15 +89,36 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
         this.anims.create({
-            key: "player_jump",
+            key: "jump",
             frames: [{ key: "player_jump", frame: 0 }],
             frameRate: 10,
         })
+
+        // Coin anim
+        this.anims.create({
+            key: "coins_spin",
+            frames: this.anims.generateFrameNumbers("coins", { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Tạo coins
+        this.coins = this.physics.add.group({
+            key: "coins",
+            repeat: 10,
+            setXY: { x: 128, y: 0, stepX: 192 }
+        });
+
+        this.coins.children.iterate((child: any) => {
+            return child.play("coins_spin");
+        });
+
+        // Overlap player–coin
+        this.physics.add.overlap(this.player, this.coins, this.collectCoin, undefined, this);
         // Colliders
         this.physics.add.collider(this.player, ground);
-        this.physics.add.collider(this.player, hazard, () => {
-            this.scene.restart();
-        });
+        this.physics.add.collider(this.coins, ground);
+        this.physics.add.collider(this.player, hazard, this.playerDead, undefined, this);
         // Giới hạn world theo kích thước map
         this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
         this.cameras.main.startFollow(this.player);
@@ -94,9 +126,21 @@ export default class GameScene extends Phaser.Scene {
 
         // Input
         this.cursors = this.input.keyboard!.createCursorKeys();
+        // Score
+        this.scoreText = this.add.text(16, 16, "Score: 0", {
+            fontSize: "32px",
+            color: "#ffffff"
+        }).setScrollFactor(0);   // cố định theo camera
+        // Goal
+        this.goal = this.physics.add.staticGroup();
+        this.goal.create(this.tileWidth * 78, this.tileHeight * 17, "flag_red_a"); // bạn đặt toạ độ tuỳ ý
+        this.physics.add.overlap(this.player, this.goal, this.reachGoal, undefined, this);
+
+
     }
 
     update() {
+
         const speed = 300;
 
         if (this.cursors.left.isDown) {
@@ -118,4 +162,18 @@ export default class GameScene extends Phaser.Scene {
             this.player.anims.play("jump", true);
         }
     }
+    private collectCoin(player: any, coins: any) {
+        coins.disableBody(true, true);
+        this.score += 10;
+        console.log("Score:", this.score);
+        this.scoreText.setText("Score: " + this.score);
+
+    }
+    private playerDead() {
+        this.scene.start("GameOverScene", {score: this.score});
+    }
+    private reachGoal(player: any, goal: any) {
+        this.scene.start("EndGameScene", { score: this.score });
+    }
+
 }
