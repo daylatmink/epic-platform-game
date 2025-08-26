@@ -9,8 +9,8 @@ export default class GameScene extends Phaser.Scene {
     private coins!: Phaser.Physics.Arcade.Group;
     private goal!: Phaser.Physics.Arcade.StaticGroup;
     private hud!: HUD;   // HUD quản lý score
-    private tileHeight: number = 32;
-    private tileWidth: number = 32;
+    // private tileHeight: number = 32;
+    // private tileWidth: number = 32;
 
     constructor() {
         super("GameScene");
@@ -28,7 +28,7 @@ export default class GameScene extends Phaser.Scene {
         this.load.image("bush", "assets/Sprites/Tiles/Default/bush.png");
         this.load.image("flag_red_a", "assets/Sprites/Tiles/Default/flag_red_a.png");
         this.load.image("flag_red_b", "assets/Sprites/Tiles/Default/flag_red_b.png");
-
+        this.load.image("flag_blue_a", "assets/Sprites/Tiles/Default/flag_blue_a.png");
         // Player assets
         this.load.image("player_idle", "assets/Sprites/Characters/Default/character_beige_idle.png");
         this.load.image("player_walk_a", "assets/Sprites/Characters/Default/character_beige_walk_a.png");
@@ -53,6 +53,7 @@ export default class GameScene extends Phaser.Scene {
         const tileset7 = map.addTilesetImage("bush", "bush")!;
         const tileset8 = map.addTilesetImage("flag_red_a", "flag_red_a")!;
         const tileset9 = map.addTilesetImage("flag_red_b", "flag_red_b")!;
+        const tileset10 = map.addTilesetImage("flag_blue_a", "flag_blue_a")!;
 
         map.createLayer("Background", [tileset7], 0, 0);
         const ground = map.createLayer("Ground", [tileset1,tileset2,tileset3,tileset4,tileset5], 0, 0)!;
@@ -61,8 +62,15 @@ export default class GameScene extends Phaser.Scene {
         hazard.setCollisionByExclusion([-1]);
         map.createLayer("Object", [tileset8, tileset9], 0, 0);
 
-        // Player
-        this.player = new Player(this, 100, 100);
+        // Spawn
+        const spawnLayer = map.getObjectLayer("Spawn");
+        if (spawnLayer && spawnLayer.objects.length > 0) {
+            const spawn = spawnLayer.objects[0];
+            this.player = new Player(this, spawn.x!, spawn.y! - spawn.height!);
+        } else {
+            this.player = new Player(this, 100, 100);
+        }
+
         Player.createAnimations(this);
 
         // Coins
@@ -95,10 +103,20 @@ export default class GameScene extends Phaser.Scene {
         // Input
         this.cursors = this.input.keyboard!.createCursorKeys();
 
+
         // Goal
-        this.goal = this.physics.add.staticGroup();
-        this.goal.create(this.tileWidth * 78, this.tileHeight * 17, "flag_red_a");
-        this.physics.add.overlap(this.player, this.goal, () => this.reachGoal());
+        const goalLayer = map.getObjectLayer("Goal");
+        if (goalLayer) {
+            this.goal = this.physics.add.staticGroup();
+
+            goalLayer.objects.forEach(obj => {
+                const goalSprite = this.goal.create(obj.x!, obj.y! - obj.height!, "flag_red_a");
+                goalSprite.setOrigin(0, 0);
+            });
+
+            this.physics.add.overlap(this.player, this.goal, () => this.reachGoal());
+        }
+
     }
 
     update() {
